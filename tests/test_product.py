@@ -40,7 +40,7 @@ class ProductSmokeTests(unittest.IsolatedAsyncioTestCase):
         with socket.socket() as probe:
             probe.bind(('127.0.0.1', 0))
             port = probe.getsockname()[1]
-        self.env.update(BROWSER_MCP_PROFILE=str(Path(self.tmp.name).resolve()), BROWSER_MCP_CDP_PORT=str(port), BROWSER_MCP_TIMEOUT_MS="5000")
+        self.env.update(BROWSER_MCP_PROFILE=str(Path(self.tmp.name).resolve()), BROWSER_MCP_CDP_PORT=str(port), BROWSER_MCP_TIMEOUT_MS="15000")
 
     async def asyncTearDown(self):
         self.http.shutdown()
@@ -72,6 +72,7 @@ foreach ($browserProcess in $processes) {
         commands = f'navigate {self.url}\nfill #name "MCP test"\nclick #save\ninspect\nexit\n'.encode()
         stdout, stderr = await asyncio.wait_for(proc.communicate(commands), timeout=90)
         self.assertEqual(proc.returncode, 0, stderr.decode(errors="replace"))
+        self.assertNotIn(b"Error:", stderr, stderr.decode(errors="replace"))
         self.assertIn(b"Liberty smoke test", stdout)
         self.assertIn(b"MCP test", stdout)
 

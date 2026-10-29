@@ -147,7 +147,7 @@ async def inspect_page() -> dict:
 @mcp.tool()
 async def click(selector: str) -> dict:
     """Click a CSS selector or Playwright selector."""
-    p=await page(); await p.locator(selector).first.click(); return {'url':p.url,'title':await p.title()}
+    p=await page(); await p.bring_to_front(); await p.locator(selector).first.click(); return {'url':p.url,'title':await p.title()}
 
 @mcp.tool()
 async def scroll(x: int = 0, y: int = 600) -> dict:
