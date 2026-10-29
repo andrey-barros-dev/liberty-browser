@@ -12,6 +12,18 @@
 
 Liberty Browser is designed for flexible navigation across the web through a dedicated Chrome profile that you control. It does not impose a built-in website allowlist: the browser can navigate to any HTTP or HTTPS destination reachable from your session. Each website continues to apply its own sign-in, verification, and access requirements.
 
+## What the project is
+
+Liberty Browser is a local Python project that packages browser controls in two forms: a standard MCP server over stdio and a command-line interface. Both use the same browser action tools.
+
+### Persistent Google Chrome mode
+
+The Codex mode controls the Google Chrome installed on the user's computer. `liberty-browser login` opens a dedicated Chrome profile in regular mode for manual sign-in. On the first MCP browser action, `liberty-browser-codex` launches that same profile with Chrome DevTools Protocol (CDP) bound to `127.0.0.1`; Playwright connects to the running Chrome instance through CDP. Cookies and signed-in state remain in that local Chrome profile, outside the repository. This profile-preserving launcher currently supports Windows.
+
+### Managed browser mode
+
+`liberty-browser-mcp` starts a browser context managed by Playwright (Chromium by default, with Firefox available by configuration). Use the persistent Google Chrome mode when you want to continue in a profile where you signed in manually.
+
 [Install](#install-from-a-source-checkout) · [CLI](#cli-examples) · [Persistent profile](#persistent-profile-and-browser-options) · [MCP](#use-as-an-mcp-server) · [Tests](#tests) · [Security](#privacy-and-security)
 
 ## What it provides

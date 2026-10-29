@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "liberty-browser"
 version = "0.1.0"
-description = "Persistent browser automation through MCP and a standalone command-line interface"
+description = "Local Python MCP and CLI for open-web browser automation with persistent Google Chrome profiles"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
