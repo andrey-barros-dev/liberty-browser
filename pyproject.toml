@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "liberty-browser"
+version = "0.1.0"
+description = "Persistent browser automation through MCP and a standalone command-line interface"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Liberty Browser contributors" }]
+keywords = ["mcp", "browser", "playwright", "automation", "cli"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Internet :: WWW/HTTP :: Browsers",
+]
+dependencies = ["mcp==1.30.0", "playwright==1.64.1"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+liberty-browser = "liberty_browser.cli:main"
+liberty-browser-mcp = "liberty_browser.server:main"
+liberty-browser-codex = "liberty_browser.session:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

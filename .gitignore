@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.coverage
+.pytest_cache/
+.env
+.env.*
+!.env.example
+profile/
+profile-firefox/
+*.png
+*.webm
+*.har
+playwright-report/
+
+# User/session data and local test artifacts
+.liberty-browser/
+.navegador-mcp/
+profile-manual/
+resultados/
+**/storage_state.json
+**/auth.json
+**/cookies.json
