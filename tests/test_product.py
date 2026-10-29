@@ -40,15 +40,28 @@ class ProductSmokeTests(unittest.IsolatedAsyncioTestCase):
         with socket.socket() as probe:
             probe.bind(('127.0.0.1', 0))
             port = probe.getsockname()[1]
-        self.env.update(BROWSER_MCP_PROFILE=self.tmp.name, BROWSER_MCP_CDP_PORT=str(port), BROWSER_MCP_TIMEOUT_MS="5000")
+        self.env.update(BROWSER_MCP_PROFILE=str(Path(self.tmp.name).resolve()), BROWSER_MCP_CDP_PORT=str(port), BROWSER_MCP_TIMEOUT_MS="5000")
 
     async def asyncTearDown(self):
         self.http.shutdown()
         self.http.server_close()
-        script = """$pattern=[regex]::Escape("--user-data-dir="+$env:BROWSER_MCP_PROFILE); Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -match $pattern } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"""
-        subprocess.run(['powershell', '-NoProfile', '-Command', script], env=self.env, capture_output=True)
-        await asyncio.sleep(1)
-        self.tmp.cleanup()
+        script = r"""$pattern=[regex]::Escape("--user-data-dir="+$env:BROWSER_MCP_PROFILE)+'(?:"|\s|$)'
+$processes=@(Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -match $pattern })
+foreach ($browserProcess in $processes) {
+    taskkill /PID $browserProcess.ProcessId /T /F 2>$null | Out-Null
+}
+"""
+        result = subprocess.run(['powershell', '-NoProfile', '-Command', script], env=self.env, capture_output=True, timeout=20)
+        # Windows can release Chrome's profile locks after the process exits.
+        # Retry cleanup, and still fail the test if files remain locked.
+        for attempt in range(20):
+            try:
+                self.tmp.cleanup()
+                break
+            except OSError:
+                if attempt == 19:
+                    raise
+                await asyncio.sleep(0.5)
 
     async def test_installed_cli_shell_navigate_fill_click_and_inspect(self):
         proc = await asyncio.create_subprocess_exec(
