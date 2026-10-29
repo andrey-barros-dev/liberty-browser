@@ -67,13 +67,7 @@ liberty-browser back
 liberty-browser shell
 ```
 
-A one-shot command starts the configured browser, performs one action, prints JSON, then closes a browser it owns. Cookies and local storage remain in the dedicated profile. Use `liberty-browser shell` to keep one browser process and page session open across multiple commands; enter `help` for command syntax and `exit` to close it. To avoid putting a private form value in shell history, pipe it through stdin:
-
-```powershell
-Get-Content .\private-value.txt -Raw | liberty-browser fill "input[name=email]" --value-stdin
-```
-
-Keep private value files out of source control and delete them when no longer needed.
+A one-shot command starts the configured browser, performs one action, prints JSON, then closes a browser it owns. Cookies and local storage remain in the dedicated profile. Use `liberty-browser shell` to keep one browser process and page session open across multiple commands; enter `help` for command syntax and `exit` to close it.
 
 ## Persistent profile and browser options
 
