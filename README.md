@@ -4,9 +4,13 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 
-**Liberty Browser** is an open-source Python browser automation project with an MCP server for agent clients and a standalone terminal CLI. It uses Playwright and keeps a dedicated persistent browser profile.
+**Liberty Browser** is an open-source Python browser automation project with an MCP server for agent clients and a standalone terminal CLI. Its Codex mode controls installed Google Chrome through local CDP and keeps the browser session in a dedicated profile.
 
 > This project is an independent implementation. It is not affiliated with Google or the Chrome DevTools MCP project.
+
+## Open-web focus
+
+Liberty Browser is designed for flexible navigation across the web through a dedicated Chrome profile that you control. It does not impose a built-in website allowlist: the browser can navigate to any HTTP or HTTPS destination reachable from your session. Each website continues to apply its own sign-in, verification, and access requirements.
 
 [Install](#install-from-a-source-checkout) · [CLI](#cli-examples) · [Persistent profile](#persistent-profile-and-browser-options) · [MCP](#use-as-an-mcp-server) · [Tests](#tests) · [Security](#privacy-and-security)
 
