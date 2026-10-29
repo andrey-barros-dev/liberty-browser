@@ -36,11 +36,18 @@ class ProductSmokeTests(unittest.IsolatedAsyncioTestCase):
         self.env = dict(os.environ)
         for name in ("BROWSER_MCP_CDP_URL", "BROWSER_SESSION_PORT", "BROWSER_SESSION_PROFILE"):
             self.env.pop(name, None)
-        self.env.update(BROWSER_MCP_PROFILE=self.tmp.name, BROWSER_MCP_HEADLESS="1", BROWSER_MCP_TIMEOUT_MS="5000")
+        import socket
+        with socket.socket() as probe:
+            probe.bind(('127.0.0.1', 0))
+            port = probe.getsockname()[1]
+        self.env.update(BROWSER_MCP_PROFILE=self.tmp.name, BROWSER_MCP_CDP_PORT=str(port), BROWSER_MCP_TIMEOUT_MS="5000")
 
     async def asyncTearDown(self):
         self.http.shutdown()
         self.http.server_close()
+        script = """$pattern=[regex]::Escape("--user-data-dir="+$env:BROWSER_MCP_PROFILE); Get-CimInstance Win32_Process -Filter "Name='chrome.exe'" | Where-Object { $_.CommandLine -match $pattern } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"""
+        subprocess.run(['powershell', '-NoProfile', '-Command', script], env=self.env, capture_output=True)
+        await asyncio.sleep(1)
         self.tmp.cleanup()
 
     async def test_installed_cli_shell_navigate_fill_click_and_inspect(self):

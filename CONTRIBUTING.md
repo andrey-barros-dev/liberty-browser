@@ -9,7 +9,6 @@ By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[test]"
-.\.venv\Scripts\python.exe -m playwright install chromium
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 

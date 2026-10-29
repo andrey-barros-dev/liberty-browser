@@ -7,4 +7,3 @@ All notable changes to Liberty Browser are recorded here.
 - Initial open-source release of the Python CLI and MCP server.
 - Added a dedicated persistent browser profile and a guarded Chrome CDP mode for Codex.
 - Added first-action Chrome startup and CDP connection retries.
-- Added Windows, Linux, and macOS CI coverage for Python 3.10 and 3.12.

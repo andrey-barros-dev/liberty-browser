@@ -4,7 +4,6 @@ import asyncio
 import time
 from pathlib import Path
 from contextlib import asynccontextmanager
-from urllib.parse import urlparse
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.utilities.types import Image
 from playwright.async_api import async_playwright
@@ -73,48 +72,26 @@ async def browser():
             attached_browser = None
             pw = await async_playwright().start()
             try:
-                endpoint = os.environ.get('BROWSER_MCP_CDP_URL')
-                if endpoint:
-                    parsed = urlparse(endpoint)
-                    if parsed.scheme not in ('http', 'ws') or parsed.hostname not in ('127.0.0.1', 'localhost', '::1'):
-                        raise ValueError('CDP endpoint must be a local HTTP or WebSocket address')
-                    if os.name == 'nt' and os.environ.get('BROWSER_MCP_CDP_PORT'):
-                        # Recover automatically if Chrome was closed or is still
-                        # starting, then verify the expected profile before attaching.
-                        port = int(os.environ['BROWSER_MCP_CDP_PORT'])
-                        last_error = None
-                        for attempt in range(3):
-                            await _ensure_cdp_chrome(port)
-                            try:
-                                attached_browser = await pw.chromium.connect_over_cdp(endpoint, timeout=5000)
-                                break
-                            except Exception as exc:
-                                last_error = exc
-                                if attempt == 2:
-                                    raise
-                                await asyncio.sleep(0.4 * (attempt + 1))
-                        if attached_browser is None:
-                            raise RuntimeError('Could not attach to the Liberty Browser Chrome session.') from last_error
-                    else:
-                        attached_browser = await pw.chromium.connect_over_cdp(endpoint, timeout=10000)
-                    if not attached_browser.contexts:
-                        raise RuntimeError('No default browser context available at CDP endpoint')
-                    context = attached_browser.contexts[0]
-                else:
-                    engine = os.environ.get('BROWSER_MCP_ENGINE', 'chromium')
-                    if engine not in ('chromium', 'firefox'):
-                        raise ValueError('BROWSER_MCP_ENGINE must be chromium or firefox')
-                    default_profile_name = 'profile' if engine == 'chromium' else 'profile-firefox'
-                    profile = Path(os.environ.get('BROWSER_MCP_PROFILE', str(default_profile().parent / default_profile_name))).expanduser().resolve()
-                    profile.mkdir(parents=True, exist_ok=True)
-                    channel = os.environ.get('BROWSER_MCP_CHANNEL') or None
-                    if engine == 'firefox' and channel:
-                        raise ValueError('BROWSER_MCP_CHANNEL is supported only with chromium')
-                    browser_type = pw.chromium if engine == 'chromium' else pw.firefox
-                    options = {'headless': os.environ.get('BROWSER_MCP_HEADLESS','0') == '1'}
-                    if channel:
-                        options['channel'] = channel
-                    context = await browser_type.launch_persistent_context(str(profile), **options)
+                if os.name != 'nt':
+                    raise RuntimeError('The persistent Google Chrome CDP runtime currently supports Windows.')
+                port = int(os.environ.get('BROWSER_MCP_CDP_PORT', '9224'))
+                if not 1024 <= port <= 65535:
+                    raise ValueError('CDP port must be between 1024 and 65535')
+                endpoint = f'http://127.0.0.1:{port}'
+                for attempt in range(3):
+                    await _ensure_cdp_chrome(port)
+                    try:
+                        # Playwright names its Chrome CDP adapter "chromium".
+                        # This connects to installed Google Chrome; it launches no bundled browser.
+                        attached_browser = await pw.chromium.connect_over_cdp(endpoint, timeout=5000)
+                        break
+                    except Exception:
+                        if attempt == 2:
+                            raise
+                        await asyncio.sleep(0.4 * (attempt + 1))
+                if not attached_browser.contexts:
+                    raise RuntimeError('No default Chrome context available at CDP endpoint')
+                context = attached_browser.contexts[0]
             except Exception:
                 await pw.stop()
                 pw = None
@@ -237,8 +214,8 @@ async def page_diagnostics() -> dict:
     body = (await p.locator('body').inner_text()).lower()
     frames = [f.url.lower() for f in p.frames]
     checks = [
-        ('browser_rejected', ('esse navegador ou app pode não ser seguro',
-                              'este navegador ou app pode não ser seguro',
+        ('browser_rejected', ('esse navegador ou app pode nÃ£o ser seguro',
+                              'este navegador ou app pode nÃ£o ser seguro',
                               'this browser or app may not be secure')),
         ('captcha_frame', ('recaptcha/api', 'hcaptcha.com', 'challenges.cloudflare.com')),
     ]
