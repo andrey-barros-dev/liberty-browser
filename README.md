@@ -57,6 +57,8 @@ liberty-browser shell
 
 Browser actions automatically launch or reconnect to the dedicated Chrome profile. Closing the MCP connection leaves Chrome running.
 
+Downloads triggered in Chrome use the download settings of the dedicated profile. Chrome handles download prompts, naming, and security checks.
+
 ## Configuration
 
 | Variable | Purpose | Default |

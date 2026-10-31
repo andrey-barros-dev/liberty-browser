@@ -91,6 +91,14 @@ async def browser():
                         await asyncio.sleep(0.4 * (attempt + 1))
                 if not attached_browser.contexts:
                     raise RuntimeError('No default Chrome context available at CDP endpoint')
+                # Playwright's CDP connection redirects downloads to its own
+                # temporary directory. Restore Chrome's profile preferences so
+                # normal clicks save files where the user configured Chrome.
+                cdp = await attached_browser.new_browser_cdp_session()
+                try:
+                    await cdp.send('Browser.setDownloadBehavior', {'behavior': 'default'})
+                finally:
+                    await cdp.detach()
                 context = attached_browser.contexts[0]
             except Exception:
                 await pw.stop()

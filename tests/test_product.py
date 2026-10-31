@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import subprocess
 import sys
@@ -16,10 +17,17 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from liberty_browser.chrome import launch_chrome
 
-HTML = b'''<!doctype html><title>Liberty smoke test</title><label>Name <input id="name"></label><button id="save" onclick="localStorage.setItem('saved',document.querySelector('#name').value);document.querySelector('#result').textContent=document.querySelector('#name').value">Save</button><div id="result"></div><script>document.querySelector('#result').textContent=localStorage.getItem('saved')||''</script>'''
+HTML = b'''<!doctype html><title>Liberty smoke test</title><label>Name <input id="name"></label><button id="save" onclick="localStorage.setItem('saved',document.querySelector('#name').value);document.querySelector('#result').textContent=document.querySelector('#name').value">Save</button><div id="result"></div><a id="download" href="/download">Download</a><script>document.querySelector('#result').textContent=localStorage.getItem('saved')||''</script>'''
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == '/download':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/octet-stream')
+            self.send_header('Content-Disposition', 'attachment; filename="liberty-test.txt"')
+            self.end_headers()
+            self.wfile.write(b'Liberty Browser download test')
+            return
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
@@ -75,6 +83,36 @@ foreach ($browserProcess in $processes) {
         self.assertNotIn(b"Error:", stderr, stderr.decode(errors="replace"))
         self.assertIn(b"Liberty smoke test", stdout)
         self.assertIn(b"MCP test", stdout)
+
+    async def test_mcp_click_download_saves_file_to_chrome_download_directory(self):
+        downloads = Path(self.tmp.name) / 'downloads'
+        downloads.mkdir()
+        preferences = Path(self.tmp.name) / 'Default' / 'Preferences'
+        preferences.parent.mkdir()
+        preferences.write_text(json.dumps({'download': {'default_directory': str(downloads), 'prompt_for_download': False}}))
+        params = StdioServerParameters(command=str(Path(sysconfig.get_path('scripts')) / 'liberty-browser-mcp.exe'), args=[], env=self.env)
+        async with stdio_client(params) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                self.assertFalse((await session.call_tool('navigate', {'url': self.url})).isError)
+                clicked = await session.call_tool('click', {'selector': '#download'})
+                self.assertFalse(clicked.isError, clicked)
+                target = downloads / 'liberty-test.txt'
+                for _ in range(100):
+                    if target.exists():
+                        break
+                    await asyncio.sleep(0.1)
+                self.assertTrue(target.exists(), 'Downloaded file was not saved by Chrome')
+                self.assertEqual(target.read_bytes(), b'Liberty Browser download test')
+                # Repeated downloads retain Chrome's normal filename handling.
+                self.assertFalse((await session.call_tool('click', {'selector': '#download'})).isError)
+                duplicate = downloads / 'liberty-test (1).txt'
+                for _ in range(100):
+                    if duplicate.exists():
+                        break
+                    await asyncio.sleep(0.1)
+                self.assertTrue(duplicate.exists(), 'Repeated download did not get a unique filename')
+                self.assertEqual(duplicate.read_bytes(), b'Liberty Browser download test')
 
     async def test_installed_mcp_stdio_protocol_and_browser_actions(self):
         params = StdioServerParameters(command=str(Path(sysconfig.get_path("scripts")) / ("liberty-browser-mcp.exe" if os.name == "nt" else "liberty-browser-mcp")), args=[], env=self.env)

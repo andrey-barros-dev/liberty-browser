@@ -2,6 +2,10 @@
 
 All notable changes to Liberty Browser are recorded here.
 
+## Unreleased
+
+- Preserve Chrome's configured download behavior when connecting over CDP.
+
 ## 0.1.0 — 2026-10-28
 
 - Initial open-source release of the Python CLI and MCP server.
