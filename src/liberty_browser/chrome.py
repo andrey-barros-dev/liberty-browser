@@ -51,7 +51,23 @@ if ($matches.Count) { exit 1 }
         raise RuntimeError("Close every Chrome window using the Liberty Browser profile before switching modes.")
 
 
-def launch_chrome(mode: str, *, profile: Path | None = None, port: int = 9224, login_url: str = "https://accounts.google.com/") -> int:
+def _headless_enabled() -> bool:
+    value = os.environ.get("BROWSER_MCP_HEADLESS", "true").strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError("BROWSER_MCP_HEADLESS must be true or false")
+
+
+def launch_chrome(
+    mode: str,
+    *,
+    profile: Path | None = None,
+    port: int = 9224,
+    login_url: str = "https://accounts.google.com/",
+    headless: bool | None = None,
+) -> int:
     if mode not in {"login", "attach"}:
         raise ValueError("mode must be login or attach")
     parsed = urlparse(login_url)
@@ -66,12 +82,17 @@ def launch_chrome(mode: str, *, profile: Path | None = None, port: int = 9224, l
     if mode == "login":
         args.append(login_url)
     else:
+        if headless is None:
+            headless = _headless_enabled()
         with socket.socket() as probe:
             try:
                 probe.bind(("127.0.0.1", port))
             except OSError as exc:
                 raise RuntimeError(f"Local port {port} is already in use.") from exc
-        args.extend((f"--remote-debugging-port={port}", "--remote-debugging-address=127.0.0.1", "about:blank"))
+        args.extend((f"--remote-debugging-port={port}", "--remote-debugging-address=127.0.0.1"))
+        if headless:
+            args.append("--headless=new")
+        args.append("about:blank")
     flags = 0
     if os.name == "nt":
         flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)

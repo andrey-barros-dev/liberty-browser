@@ -12,7 +12,7 @@ Liberty Browser supports navigation across HTTP and HTTPS sites without a built-
 
 1. Run `liberty-browser login` to open installed Google Chrome with a dedicated profile for manual sign-in.
 2. Close the Chrome windows using that profile.
-3. Call an MCP browser tool. Liberty Browser starts the same Chrome profile with loopback CDP, waits for readiness, verifies the process and profile, and connects.
+3. Call an MCP browser tool. Liberty Browser starts the same profile in headless mode with loopback CDP, waits for readiness, verifies the process and profile, and connects without bringing a Chrome window to the foreground.
 
 Playwright provides the CDP connection API. All browser actions use installed Google Chrome. Cookies and signed-in state remain in the local profile outside this repository.
 
@@ -72,6 +72,7 @@ upload_file accepts up to 20 regular files at a time. The default per-file limit
 | `BROWSER_MCP_PROFILE` | Dedicated persistent Chrome profile | `%LOCALAPPDATA%/LibertyBrowser/profile` |
 | `BROWSER_MCP_CDP_PORT` | Loopback CDP port | `9224` |
 | `BROWSER_MCP_TIMEOUT_MS` | Browser action timeout | `10000` |
+| `BROWSER_MCP_HEADLESS` | Run MCP-launched Chrome without a visible window (`login` remains visible) | `true` |
 
 ## Development
 
