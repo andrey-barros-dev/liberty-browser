@@ -51,13 +51,11 @@ if ($matches.Count) { exit 1 }
         raise RuntimeError("Close every Chrome window using the Liberty Browser profile before switching modes.")
 
 
-def _headless_enabled() -> bool:
-    value = os.environ.get("BROWSER_MCP_HEADLESS", "true").strip().lower()
-    if value in {"1", "true", "yes", "on"}:
-        return True
-    if value in {"0", "false", "no", "off"}:
-        return False
-    raise ValueError("BROWSER_MCP_HEADLESS must be true or false")
+def _window_mode() -> str:
+    mode = os.environ.get("BROWSER_MCP_WINDOW_MODE", "background").strip().lower()
+    if mode not in {"background", "headless", "foreground"}:
+        raise ValueError("BROWSER_MCP_WINDOW_MODE must be background, headless, or foreground")
+    return mode
 
 
 def launch_chrome(
@@ -66,7 +64,7 @@ def launch_chrome(
     profile: Path | None = None,
     port: int = 9224,
     login_url: str = "https://accounts.google.com/",
-    headless: bool | None = None,
+    window_mode: str | None = None,
 ) -> int:
     if mode not in {"login", "attach"}:
         raise ValueError("mode must be login or attach")
@@ -82,19 +80,32 @@ def launch_chrome(
     if mode == "login":
         args.append(login_url)
     else:
-        if headless is None:
-            headless = _headless_enabled()
+        window_mode = window_mode or _window_mode()
+        if window_mode not in {"background", "headless", "foreground"}:
+            raise ValueError("window_mode must be background, headless, or foreground")
         with socket.socket() as probe:
             try:
                 probe.bind(("127.0.0.1", port))
             except OSError as exc:
                 raise RuntimeError(f"Local port {port} is already in use.") from exc
         args.extend((f"--remote-debugging-port={port}", "--remote-debugging-address=127.0.0.1"))
-        if headless:
+        if window_mode == "headless":
             args.append("--headless=new")
+        elif window_mode == "background":
+            args.append("--start-minimized")
         args.append("about:blank")
     flags = 0
+    startupinfo = None
     if os.name == "nt":
         flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-    process = subprocess.Popen([str(find_chrome()), *args], close_fds=True, creationflags=flags)
+        if mode == "attach" and window_mode == "background":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = 7  # SW_SHOWMINNOACTIVE
+    process = subprocess.Popen(
+        [str(find_chrome()), *args],
+        close_fds=True,
+        creationflags=flags,
+        startupinfo=startupinfo,
+    )
     return process.pid
