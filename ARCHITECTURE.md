@@ -4,6 +4,8 @@ MCP clients communicate over stdio with the Liberty Browser Python server. The C
 
 The runtime launches installed Google Chrome with a dedicated persistent profile and a loopback CDP endpoint. Playwright connects to that Chrome instance through CDP. The runtime verifies the Chrome process and profile, waits for startup, and retries connection races.
 
+File upload uses Playwright set_input_files for file inputs and captures a page-triggered file chooser for buttons or other controls. The server validates that each selected path exists as a regular file and enforces the configured per-file size limit before handing the files to the page.
+
 `liberty-browser login` opens the dedicated profile in regular Chrome for manual sign-in. Subsequent browser actions reopen that profile with CDP. Cookies and session state stay in local application data outside the repository.
 
 Both MCP command names use this same runtime. Windows and installed Google Chrome are required.

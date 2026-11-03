@@ -5,6 +5,8 @@ All notable changes to Liberty Browser are recorded here.
 ## Unreleased
 
 - Preserve Chrome's configured download behavior when connecting over CDP.
+- Add MCP file uploads for hidden file inputs and page-triggered file choosers.
+- Include hidden file inputs in page inspection and enforce a per-file upload size limit.
 
 ## 0.1.0 — 2026-10-28
 

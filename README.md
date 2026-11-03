@@ -59,6 +59,12 @@ Browser actions automatically launch or reconnect to the dedicated Chrome profil
 
 Downloads triggered in Chrome use the download settings of the dedicated profile. Chrome handles download prompts, naming, and security checks.
 
+## Upload files
+
+Use inspect_page to find file inputs, including hidden input[type=file] controls. Then call the upload_file MCP tool with the input selector and one or more absolute local file paths. If the selector is a button that opens the file chooser, Liberty Browser captures that chooser and supplies the files directly through Playwright.
+
+upload_file accepts up to 20 regular files at a time. The default per-file limit is 256 MiB; set BROWSER_MCP_MAX_UPLOAD_BYTES to change it. Selecting files makes them available to the current page, which may upload or process them, so call this tool only for files and destinations the user has requested.
+
 ## Configuration
 
 | Variable | Purpose | Default |

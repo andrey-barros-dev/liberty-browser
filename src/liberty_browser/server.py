@@ -150,7 +150,17 @@ async def inspect_page() -> dict:
     """Return page text and visible interactive elements with CSS selectors and accessible labels."""
     p=await page()
     elements=await p.locator('a,button,input,select,textarea,[role=button]').evaluate_all('''els => els.filter(e => e.getClientRects().length).slice(0,200).map(e => ({tag:e.tagName, id:e.id, name:e.getAttribute('name'), role:e.getAttribute('role'), type:e.getAttribute('type'), label:e.getAttribute('aria-label') || e.innerText || e.placeholder || '', selector:e.id && document.querySelectorAll('#'+CSS.escape(e.id)).length === 1 ? '#'+CSS.escape(e.id) : (() => {let a=[], n=e; while(n && n.nodeType===1 && n!==document.documentElement){let i=1, s=n; while(s=s.previousElementSibling) if(s.tagName===n.tagName)i++; a.unshift(n.tagName.toLowerCase()+':nth-of-type('+i+')');n=n.parentElement;} return 'html > '+a.join(' > ');})(), href:e.getAttribute('href')}))''')
-    return {'url':p.url,'title':await p.title(),'text':(await p.locator('body').inner_text())[:30000], 'elements':elements}
+    file_inputs=await p.locator('input[type="file"]').evaluate_all('''els => els.map((e, index) => ({
+        id:e.id,
+        name:e.getAttribute('name'),
+        accept:e.getAttribute('accept'),
+        multiple:e.multiple,
+        disabled:e.disabled,
+        selector:e.id && document.querySelectorAll('#'+CSS.escape(e.id)).length === 1
+            ? '#'+CSS.escape(e.id)
+            : (() => {let a=[], n=e; while(n && n.nodeType===1 && n!==document.documentElement){let i=1, s=n; while(s=s.previousElementSibling) if(s.tagName===n.tagName)i++; a.unshift(n.tagName.toLowerCase()+':nth-of-type('+i+')');n=n.parentElement;} return 'html > '+a.join(' > ');})()
+    }))''')
+    return {'url':p.url,'title':await p.title(),'text':(await p.locator('body').inner_text())[:30000], 'elements':elements, 'file_inputs':file_inputs}
 
 @mcp.tool()
 async def click(selector: str) -> dict:
@@ -208,6 +218,57 @@ async def canvas_click(index: int, x: float, y: float) -> dict:
 async def fill(selector: str, value: str) -> dict:
     """Fill an editable field; values are not logged by this server."""
     p=await page(); await p.locator(selector).first.fill(value); return {'ok':True}
+
+@mcp.tool()
+async def upload_file(selector: str, paths: list[str]) -> dict:
+    """Choose local file(s) for an input[type=file] or a button that opens a file chooser.
+
+    This transfers the selected files to the current website if its page processes or submits them.
+    Only call it when the user has asked to upload those files to the current site.
+    """
+    if not paths:
+        raise ValueError('paths must contain at least one local file')
+    if len(paths) > 20:
+        raise ValueError('A maximum of 20 files can be selected at once')
+
+    max_bytes = int(os.environ.get('BROWSER_MCP_MAX_UPLOAD_BYTES', str(256 * 1024 * 1024)))
+    if max_bytes <= 0:
+        raise ValueError('BROWSER_MCP_MAX_UPLOAD_BYTES must be greater than zero')
+
+    files = []
+    for value in paths:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError('Each path must be a non-empty string')
+        file_path = Path(value).expanduser().resolve(strict=True)
+        if not file_path.is_file():
+            raise ValueError(f'Not a regular file: {file_path.name}')
+        if file_path.stat().st_size > max_bytes:
+            raise ValueError(
+                f'File exceeds the configured upload limit ({max_bytes} bytes): {file_path.name}'
+            )
+        files.append(file_path)
+
+    p = await page()
+    target = p.locator(selector).first
+    await target.wait_for(state='attached')
+    is_file_input = await target.evaluate(
+        "element => element instanceof HTMLInputElement && element.type === 'file'"
+    )
+    file_paths = [str(file_path) for file_path in files]
+
+    if is_file_input:
+        await target.set_input_files(file_paths)
+    else:
+        async with p.expect_file_chooser() as chooser_info:
+            await target.click()
+        chooser = await chooser_info.value
+        await chooser.set_files(file_paths)
+
+    return {
+        'url': p.url,
+        'count': len(files),
+        'files': [file_path.name for file_path in files],
+    }
 
 @mcp.tool()
 async def inspect_frames() -> dict:
