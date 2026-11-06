@@ -59,6 +59,10 @@ Browser actions automatically launch or reconnect to the dedicated Chrome profil
 
 Downloads triggered in Chrome use the download settings of the dedicated profile. Chrome handles download prompts, naming, and security checks.
 
+## Evaluate JavaScript
+
+The `evaluate_script` MCP tool runs a JavaScript function in the selected page and returns its result. For example, use `{"function": "() => document.title"}`. Functions can be asynchronous, and the optional `args` array supplies positional arguments: `{"function": "(a, b) => a + b", "args": [2, 3]}`. Return JSON-compatible values. Scripts run with the current page's session and can modify it.
+
 ## Upload files
 
 Use inspect_page to find file inputs, including hidden input[type=file] controls. Then call the upload_file MCP tool with the input selector and one or more absolute local file paths. If the selector is a button that opens the file chooser, Liberty Browser captures that chooser and supplies the files directly through Playwright.

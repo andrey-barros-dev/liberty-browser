@@ -121,8 +121,27 @@ foreach ($browserProcess in $processes) {
                 await session.initialize()
                 tools = await session.list_tools()
                 self.assertIn("navigate", {tool.name for tool in tools.tools})
+                self.assertIn("evaluate_script", {tool.name for tool in tools.tools})
                 nav = await session.call_tool("navigate", {"url": self.url})
                 self.assertFalse(nav.isError, nav)
+                evaluated = await session.call_tool("evaluate_script", {
+                    "function": "async (name, count) => { await Promise.resolve(); document.querySelector('#result').textContent = name; return {title: document.title, count, text: document.querySelector('#result').textContent}; }",
+                    "args": ["Test with quotes \" and Unicode: ç", 7],
+                })
+                self.assertFalse(evaluated.isError, evaluated)
+                self.assertEqual(json.loads(evaluated.content[0].text)['result'], {
+                    'title': 'Liberty smoke test', 'count': 7, 'text': 'Test with quotes " and Unicode: ç',
+                })
+                failed = await session.call_tool("evaluate_script", {"function": "() => { throw new Error('evaluation test error') }"})
+                self.assertTrue(failed.isError, failed)
+                self.assertIn('evaluation test error', str(failed.content))
+                empty = await session.call_tool("evaluate_script", {"function": "() => null"})
+                self.assertFalse(empty.isError, empty)
+                self.assertIsNone(json.loads(empty.content[0].text)['result'])
+                self.assertFalse((await session.call_tool('tabs', {'action': 'new'})).isError)
+                selected = await session.call_tool('evaluate_script', {'function': '() => location.href'})
+                self.assertEqual(json.loads(selected.content[0].text)['result'], 'about:blank')
+                self.assertFalse((await session.call_tool('tabs', {'action': 'select', 'index': 0})).isError)
                 import statistics
                 import time
                 fill_times, click_times = [], []

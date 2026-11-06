@@ -2,6 +2,7 @@
 import os
 import asyncio
 import time
+from typing import Any
 from pathlib import Path
 from contextlib import asynccontextmanager
 from mcp.server.fastmcp import FastMCP
@@ -144,6 +145,19 @@ async def tabs(action: str = 'list', index: int = 0) -> dict:
         else: current=index
     elif action!='list': raise ValueError('action must be list, new, select, or close')
     return {'current':current,'tabs':[{'index':i,'url':p.url,'title':await p.title()} for i,p in enumerate(ctx.pages)]}
+
+@mcp.tool()
+async def evaluate_script(function: str, args: list[Any] | None = None) -> dict:
+    """Run a JavaScript function in the selected page and return its result.
+
+    Provide a function such as ``() => document.title`` or an async function.
+    Optional JSON arguments are passed as positional parameters. The function
+    can read and change the page using the current browser session.
+    Return JSON-compatible values; JavaScript errors are reported to the client.
+    """
+    p = await page()
+    result = await p.evaluate(f'async (args) => await ({function}\n)(...args)', args or [])
+    return {'result': result}
 
 @mcp.tool()
 async def inspect_page() -> dict:

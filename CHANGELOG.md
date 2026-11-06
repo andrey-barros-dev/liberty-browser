@@ -4,6 +4,7 @@ All notable changes to Liberty Browser are recorded here.
 
 ## Unreleased
 
+- Add an MCP tool to evaluate JavaScript functions in the selected page.
 - Preserve Chrome's configured download behavior when connecting over CDP.
 - Start MCP-controlled Chrome minimized without taking desktop focus; allow headless and foreground modes.
 - Add MCP file uploads for hidden file inputs and page-triggered file choosers.
