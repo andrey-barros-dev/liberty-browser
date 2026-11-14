@@ -242,8 +242,6 @@ async def upload_file(selector: str, paths: list[str]) -> dict:
     """
     if not paths:
         raise ValueError('paths must contain at least one local file')
-    if len(paths) > 20:
-        raise ValueError('A maximum of 20 files can be selected at once')
 
     # Sem limite por padrão; defina BROWSER_MCP_MAX_UPLOAD_BYTES (>0) para impor um teto.
     max_bytes = int(os.environ.get('BROWSER_MCP_MAX_UPLOAD_BYTES', '0'))
