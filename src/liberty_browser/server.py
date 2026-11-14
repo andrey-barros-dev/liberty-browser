@@ -245,9 +245,8 @@ async def upload_file(selector: str, paths: list[str]) -> dict:
     if len(paths) > 20:
         raise ValueError('A maximum of 20 files can be selected at once')
 
-    max_bytes = int(os.environ.get('BROWSER_MCP_MAX_UPLOAD_BYTES', str(256 * 1024 * 1024)))
-    if max_bytes <= 0:
-        raise ValueError('BROWSER_MCP_MAX_UPLOAD_BYTES must be greater than zero')
+    # Sem limite por padrão; defina BROWSER_MCP_MAX_UPLOAD_BYTES (>0) para impor um teto.
+    max_bytes = int(os.environ.get('BROWSER_MCP_MAX_UPLOAD_BYTES', '0'))
 
     files = []
     for value in paths:
@@ -256,7 +255,7 @@ async def upload_file(selector: str, paths: list[str]) -> dict:
         file_path = Path(value).expanduser().resolve(strict=True)
         if not file_path.is_file():
             raise ValueError(f'Not a regular file: {file_path.name}')
-        if file_path.stat().st_size > max_bytes:
+        if max_bytes > 0 and file_path.stat().st_size > max_bytes:
             raise ValueError(
                 f'File exceeds the configured upload limit ({max_bytes} bytes): {file_path.name}'
             )
