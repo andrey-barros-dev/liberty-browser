@@ -271,7 +271,27 @@ async def upload_file(selector: str, paths: list[str]) -> dict:
     file_paths = [str(file_path) for file_path in files]
 
     if is_file_input:
-        await target.set_input_files(file_paths)
+        # Chrome local via CDP: Playwright limita a 50MB em browser "remoto";
+        # DOM.setFileInputFiles passa o caminho local direto, sem limite.
+        marker = 'data-mcp-upload-target'
+        await target.evaluate("(el, m) => el.setAttribute(m, '1')", marker)
+        cdp = await p.context.new_cdp_session(p)
+        try:
+            doc = await cdp.send('DOM.getDocument', {'depth': 0})
+            q = await cdp.send('DOM.querySelector', {
+                'nodeId': doc['root']['nodeId'],
+                'selector': f'[{marker}]',
+            })
+            if q.get('nodeId'):
+                await cdp.send('DOM.setFileInputFiles', {
+                    'files': file_paths,
+                    'nodeId': q['nodeId'],
+                })
+            else:
+                await target.set_input_files(file_paths)
+        finally:
+            await target.evaluate("(el, m) => el.removeAttribute(m)", marker)
+            await cdp.detach()
     else:
         async with p.expect_file_chooser() as chooser_info:
             await target.click()
